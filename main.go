@@ -45,7 +45,7 @@ func handlePacket(context *routing.Context) error {
 
 	serverId := context.Param("id")
 
-	locationPacket := server.NewLocationPacket(context)
+	locationPacket := server.NewLocation(context)
 
 	logrus.Info(string(context.RequestURI()))
 

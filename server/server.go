@@ -5,26 +5,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Server
 type Server struct {
-	DataQueue chan LocationPacket
+	ID        string
+	DataQueue chan Location
 	CloseChan chan bool
 }
 
-func NewServer() *Server {
+// Creates new server object
+func NewServer(id string) *Server {
 	return &Server{
-		DataQueue: make(chan LocationPacket),
+		ID:        id,
+		DataQueue: make(chan Location),
 		CloseChan: make(chan bool),
 	}
 }
 
+// Closes channel
 func (s *Server) Close() {
 	s.CloseChan <- true
 }
 
-func (s *Server) SendPacket(packet LocationPacket) {
+// Sends location to channel
+func (s *Server) SendLocation(packet Location) {
 	s.DataQueue <- packet
 }
 
+// Listens to channels
 func (s *Server) Run() {
 	select {
 	case <-s.DataQueue:
@@ -34,14 +41,16 @@ func (s *Server) Run() {
 	}
 }
 
-type LocationPacket struct {
+// Location information sent from client
+type Location struct {
 	UUID string  `json:"uuid"`
 	X    float64 `json:"x"`
 	Z    float64 `json:"z"`
 }
 
-func NewLocationPacket(context *routing.Context) *LocationPacket {
-	var locationPacket LocationPacket
+// Creates new location from routing context (ie. POST body)
+func NewLocation(context *routing.Context) *Location {
+	var locationPacket Location
 
 	if err := context.Read(&locationPacket); err != nil {
 		logrus.Fatalf("Unable to read JSON %s", err)

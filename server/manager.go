@@ -24,11 +24,13 @@ func (m *Manager) Contains(id string) bool {
 
 func (m *Manager) Get(id string) *Server {
 	server, ok := m.Servers.Load(id)
+	var serverCast *Server = nil
 
 	if !ok {
 		logrus.Errorf("Couldn't find server %s", id)
-		return nil
 	} else {
-		return server.(*Server)
+		serverCast = server.(*Server)
 	}
+
+	return serverCast
 }

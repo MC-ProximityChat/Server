@@ -7,26 +7,29 @@ import (
 	"time"
 )
 
-const PerMinLimit = 1000
+const perMinLimit = 1000
 
+// Throttler object
 type Throttler struct {
 	ServerMap          sync.Map
 	Ticker             *time.Ticker
 	WhitelistedServers *immutable.List
-	QuitChan           chan struct{}
+	CloseChan          chan struct{}
 }
 
+// Creates a new throttler with whitelisted servers
 func NewThrottler() *Throttler {
-	throttler := NewEmptyThrottler()
+	throttler := newEmptyThrottler()
 	throttler.WhitelistedServers = getWhitelistedServers()
 	return throttler
 }
 
-func NewEmptyThrottler() *Throttler {
+// Creates an empty throttler
+func newEmptyThrottler() *Throttler {
 	return &Throttler{
 		ServerMap: sync.Map{},
 		Ticker:    time.NewTicker(60 * time.Second),
-		QuitChan:  make(chan struct{}, 1),
+		CloseChan: make(chan struct{}, 1),
 	}
 }
 
@@ -36,18 +39,22 @@ func getWhitelistedServers() *immutable.List {
 	return builder.List()
 }
 
+// Increases the rate of throttling by 1
+// Returns whether new increased throttle is greater than the threshold
 func (t *Throttler) IncreaseThrottle(id string) bool {
 	newRate := t.addRate(id)
-	return newRate > PerMinLimit
+	return newRate > perMinLimit
 }
 
+// Clears rates over given time period
+// Also contains close chan
 func (t *Throttler) Run() {
 	go func() {
 		for {
 			select {
 			case <-t.Ticker.C:
 				t.clearRates()
-			case <-t.QuitChan:
+			case <-t.CloseChan:
 				t.Ticker.Stop()
 				t.ServerMap.Range(func(key, value interface{}) bool {
 					_, ok := t.ServerMap.LoadAndDelete(key)
@@ -59,8 +66,9 @@ func (t *Throttler) Run() {
 	}()
 }
 
+// Sends to close chan
 func (t *Throttler) Close() {
-	t.QuitChan <- struct{}{}
+	t.CloseChan <- struct{}{}
 }
 
 func (t *Throttler) addRate(id string) int {
