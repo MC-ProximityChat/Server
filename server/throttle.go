@@ -10,10 +10,10 @@ import (
 const PerMinLimit = 1000
 
 type Throttler struct {
-	ServerMap sync.Map
-	Ticker    *time.Ticker
+	ServerMap          sync.Map
+	Ticker             *time.Ticker
 	WhitelistedServers *immutable.List
-	QuitChan  chan struct{}
+	QuitChan           chan struct{}
 }
 
 func NewThrottler() *Throttler {
@@ -21,7 +21,6 @@ func NewThrottler() *Throttler {
 	throttler.WhitelistedServers = getWhitelistedServers()
 	return throttler
 }
-
 
 func NewEmptyThrottler() *Throttler {
 	return &Throttler{
