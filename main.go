@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	port = flag.String("port", ":8081", "Port to listen on")
-	compress = flag.Bool("compress", false, "Enable transparent compress compression")
-	manager = server.NewManager()
+	port      = flag.String("port", ":8081", "Port to listen on")
+	compress  = flag.Bool("compress", false, "Enable transparent compress compression")
+	manager   = server.NewManager()
 	throttler = server.NewThrottler()
 )
 

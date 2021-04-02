@@ -27,18 +27,17 @@ func (s *Server) SendPacket(packet LocationPacket) {
 
 func (s *Server) Run() {
 	select {
-	case <- s.DataQueue:
+	case <-s.DataQueue:
 		return
-	case <- s.CloseChan:
+	case <-s.CloseChan:
 		return
 	}
 }
 
-
 type LocationPacket struct {
-	UUID string `json:"uuid"`
-	X float64 `json:"x"`
-	Z float64 `json:"z"`
+	UUID string  `json:"uuid"`
+	X    float64 `json:"x"`
+	Z    float64 `json:"z"`
 }
 
 func NewLocationPacket(context *routing.Context) *LocationPacket {
