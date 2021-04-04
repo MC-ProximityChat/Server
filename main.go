@@ -18,19 +18,29 @@ var (
 
 func main() {
 	flag.Parse()
-	logrus.Info("Starting proximity chat server...")
+	logrus.Info("Starting proximity chat server on port " + *port)
 
 	r := routing.New()
 
 	throttler.Run()
 
+	initCli()
+
 	serverApi := r.Group("/server")
+
+	authApi := r.Group("/auth")
 
 	serverApi.Use(
 		content.TypeNegotiator(content.JSON),
 	)
 
-	serverApi.Get("/<id>", helloWorldId)
+	authApi.Use(
+		content.TypeNegotiator(content.JSON),
+	)
+
+	authApi.Get("/token")
+
+	serverApi.Get("/<id>", contextInfo)
 	serverApi.Post("/new", newServerEndpoint)
 	serverApi.Post("/<id>", handlePacket)
 
@@ -38,7 +48,22 @@ func main() {
 }
 
 func newServerEndpoint(context *routing.Context) error {
-	return nil
+
+	serverBody := struct {
+		Description string `json:"description"`
+	}{}
+
+	if err := context.Read(&serverBody); err != nil {
+		logrus.Fatalf("Unable to read JSON %s", err)
+	}
+
+	serv := server.NewServer(serverBody.Description)
+	manager.Add(serv.ID, serv)
+
+	return context.Write(struct {
+		ID   string
+		Name string
+	}{ID: serv.ID, Name: serv.Name})
 }
 
 func handlePacket(context *routing.Context) error {
@@ -49,7 +74,7 @@ func handlePacket(context *routing.Context) error {
 
 	logrus.Info(string(context.RequestURI()))
 
-	isThrottled := throttler.IncreaseThrottle(serverId)
+	isThrottled := throttler.IncreaseRate(serverId)
 
 	if isThrottled {
 		context.SetStatusCode(403)
@@ -61,8 +86,18 @@ func handlePacket(context *routing.Context) error {
 	}
 }
 
-func helloWorldId(context *routing.Context) error {
-	return context.Write(NewMessageObject("Hello world"))
+func contextInfo(context *routing.Context) error {
+	context.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	serv, ok := manager.Get(context.Param("id"))
+
+	if !ok {
+		context.SetStatusCode(404)
+		return context.Write(NewMessageObject("Server not found!"))
+	}
+	return context.Write(struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}{ID: serv.ID, Name: serv.Name})
 }
 
 func NewMessageObject(message string) interface{} {

@@ -1,12 +1,17 @@
 package server
 
 import (
-	"github.com/sirupsen/logrus"
 	"sync"
+	"time"
 )
 
 type Manager struct {
 	Servers sync.Map
+}
+
+type managerJanitor struct {
+	manager *Manager
+	timer   *time.Timer
 }
 
 func NewManager() *Manager {
@@ -22,15 +27,21 @@ func (m *Manager) Contains(id string) bool {
 	return ok
 }
 
-func (m *Manager) Get(id string) *Server {
+func (m *Manager) Get(id string) (*Server, bool) {
 	server, ok := m.Servers.Load(id)
 	var serverCast *Server = nil
 
 	if !ok {
-		logrus.Errorf("Couldn't find server %s", id)
+		return nil, false
 	} else {
 		serverCast = server.(*Server)
 	}
 
-	return serverCast
+	return serverCast, true
+}
+
+func StartCleanup() {
+	go func() {
+
+	}()
 }

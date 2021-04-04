@@ -9,8 +9,8 @@ import (
 
 const perMinLimit = 1000
 
-// Throttler object
-type Throttler struct {
+// RateLimiter object
+type RateLimiter struct {
 	ServerMap          sync.Map
 	Ticker             *time.Ticker
 	WhitelistedServers *immutable.List
@@ -18,15 +18,15 @@ type Throttler struct {
 }
 
 // Creates a new throttler with whitelisted servers
-func NewThrottler() *Throttler {
+func NewThrottler() *RateLimiter {
 	throttler := newEmptyThrottler()
 	throttler.WhitelistedServers = getWhitelistedServers()
 	return throttler
 }
 
 // Creates an empty throttler
-func newEmptyThrottler() *Throttler {
-	return &Throttler{
+func newEmptyThrottler() *RateLimiter {
+	return &RateLimiter{
 		ServerMap: sync.Map{},
 		Ticker:    time.NewTicker(60 * time.Second),
 		CloseChan: make(chan struct{}, 1),
@@ -41,14 +41,14 @@ func getWhitelistedServers() *immutable.List {
 
 // Increases the rate of throttling by 1
 // Returns whether new increased throttle is greater than the threshold
-func (t *Throttler) IncreaseThrottle(id string) bool {
+func (t *RateLimiter) IncreaseRate(id string) bool {
 	newRate := t.addRate(id)
 	return newRate > perMinLimit
 }
 
 // Clears rates over given time period
 // Also contains close chan
-func (t *Throttler) Run() {
+func (t *RateLimiter) Run() {
 	go func() {
 		for {
 			select {
@@ -67,11 +67,11 @@ func (t *Throttler) Run() {
 }
 
 // Sends to close chan
-func (t *Throttler) Close() {
+func (t *RateLimiter) Close() {
 	t.CloseChan <- struct{}{}
 }
 
-func (t *Throttler) addRate(id string) int {
+func (t *RateLimiter) addRate(id string) int {
 	currRateInterface, loadOk := t.ServerMap.Load(id)
 	if !loadOk {
 		t.ServerMap.Store(id, 0)
@@ -89,8 +89,8 @@ func (t *Throttler) addRate(id string) int {
 	}
 }
 
-func (t *Throttler) clearRates() {
-	logrus.Info("Clearing throttle rates...")
+func (t *RateLimiter) clearRates() {
+	logrus.Info("Clearing limiter...")
 	t.ServerMap.Range(func(key, value interface{}) bool {
 		t.ServerMap.Store(key, 0)
 		return true

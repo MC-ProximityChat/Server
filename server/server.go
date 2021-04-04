@@ -3,19 +3,34 @@ package server
 import (
 	routing "github.com/jackwhelpton/fasthttp-routing"
 	"github.com/sirupsen/logrus"
+	"github.com/sony/sonyflake"
+	"strconv"
+)
+
+var (
+	idGenerator = sonyflake.NewSonyflake(sonyflake.Settings{})
 )
 
 // Server
 type Server struct {
 	ID        string
+	Name      string
 	DataQueue chan Location
 	CloseChan chan bool
 }
 
 // Creates new server object
-func NewServer(id string) *Server {
+func NewServer(name string) *Server {
+	id, err := idGenerator.NextID()
+	if err != nil {
+		logrus.Errorf("Unable to generate uuid %s", err)
+	}
+
+	idStr := strconv.FormatUint(id, 10)
+
 	return &Server{
-		ID:        id,
+		ID:        idStr,
+		Name:      name,
 		DataQueue: make(chan Location),
 		CloseChan: make(chan bool),
 	}
