@@ -7,10 +7,9 @@ import (
 	"time"
 )
 
-const perMinLimit = 1000
-
 // RateLimiter object
 type RateLimiter struct {
+	PerMinLimit        uint16
 	ServerMap          sync.Map
 	Ticker             *time.Ticker
 	WhitelistedServers *immutable.List
@@ -18,9 +17,10 @@ type RateLimiter struct {
 }
 
 // Creates a new throttler with whitelisted servers
-func NewThrottler() *RateLimiter {
+func NewThrottler(perMinLimit uint16) *RateLimiter {
 	throttler := newEmptyThrottler()
 	throttler.WhitelistedServers = getWhitelistedServers()
+	throttler.PerMinLimit = perMinLimit
 	return throttler
 }
 
@@ -43,7 +43,7 @@ func getWhitelistedServers() *immutable.List {
 // Returns whether new increased throttle is greater than the threshold
 func (t *RateLimiter) IncreaseRate(id string) bool {
 	newRate := t.addRate(id)
-	return newRate > perMinLimit
+	return newRate > t.PerMinLimit
 }
 
 // Clears rates over given time period
@@ -71,7 +71,7 @@ func (t *RateLimiter) Close() {
 	t.CloseChan <- struct{}{}
 }
 
-func (t *RateLimiter) addRate(id string) int {
+func (t *RateLimiter) addRate(id string) uint16 {
 	currRateInterface, loadOk := t.ServerMap.Load(id)
 	if !loadOk {
 		t.ServerMap.Store(id, 0)
@@ -85,7 +85,7 @@ func (t *RateLimiter) addRate(id string) int {
 
 		newRate := currRate + 1
 		t.ServerMap.Store(id, newRate)
-		return newRate
+		return uint16(newRate)
 	}
 }
 

@@ -1,33 +1,23 @@
 package server
 
 import (
+	"errors"
 	"sync"
-	"time"
 )
 
 type Manager struct {
 	Servers sync.Map
 }
 
-type managerJanitor struct {
-	manager *Manager
-	timer   *time.Timer
-}
-
 func NewManager() *Manager {
 	return &Manager{Servers: sync.Map{}}
 }
 
-func (m *Manager) Add(id string, server *Server) {
+func (m *Manager) Create(id string, server *Server) {
 	m.Servers.Store(id, server)
 }
 
-func (m *Manager) Contains(id string) bool {
-	_, ok := m.Servers.Load(id)
-	return ok
-}
-
-func (m *Manager) Get(id string) (*Server, bool) {
+func (m *Manager) Read(id string) (*Server, bool) {
 	server, ok := m.Servers.Load(id)
 	var serverCast *Server = nil
 
@@ -40,8 +30,20 @@ func (m *Manager) Get(id string) (*Server, bool) {
 	return serverCast, true
 }
 
-func StartCleanup() {
-	go func() {
+func (m *Manager) Delete(id string) error {
 
-	}()
+	var err error
+
+	if !m.Contains(id) {
+		err = errors.New("server doesn't exist")
+	}
+
+	m.Servers.Delete(id)
+
+	return err
+}
+
+func (m *Manager) Contains(id string) bool {
+	_, ok := m.Servers.Load(id)
+	return ok
 }
